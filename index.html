@@ -1,1 +1,145 @@
-Hello world
+<html>
+<script src='https://d3js.org/d3.v5.min.js'></script>
+
+<head>
+    <style>
+        .axis {
+            font: 10px sans-serif;
+        }
+
+        .axis path,
+        .axis line {
+            fill: none;
+            stroke: #000;
+            shape-rendering: crispEdges;
+        }
+    </style>
+</head>
+
+<body onload='init()'>
+
+    <script>
+        async function init() {
+            const data = await d3.csv('https://zhukov123.github.io/us-states.csv');
+            //console.log(data);
+
+            var texas = data.filter(x => { return x.state == 'New York'; });
+            //console.log(texas);
+
+            var finalData = addNewCasesAndDeaths(texas);
+            //console.log(temp);
+
+            var margin = { top: 20, right: 20, bottom: 70, left: 40 },
+                width = 1000 - margin.left - margin.right,
+                height = 400 - margin.top - margin.bottom;
+
+            // Parse the date / time
+            //var parseDate = d3.time.format("%Y-%m").parse;
+            // var parseTime = d3.timeParse("%d-%b-%y");
+
+            var parseTime = d3.timeParse("%Y-%m-%d");
+            var formatTime = d3.timeFormat("%Y-%m-%d");  
+
+
+            finalData.forEach(function (d) {
+                d.date = parseTime(d.date);
+                d.newCases = +d.newCases;
+                //console.log(d.date);
+            });
+
+            var div = d3.select("body").append("div")	
+                .attr("class", "tooltip")				
+                .style("opacity", 0);
+
+            
+            var x = d3.scaleTime().range([0, width]);
+
+            var y = d3.scaleLinear().range([height, 0]);
+
+            x.domain(finalData.map(function (d) { return d.date; }));
+            y.domain([0, d3.max(finalData, function (d) { return d.newCases; })]);
+
+            var xAxis = d3.axisBottom()
+                .scale(x)
+                .tickFormat(d3.timeFormat("%Y-%m-%d"))
+                //.ticks(10)
+                .tickValues(x.domain().filter(function (d, i) { console.log(d, i); return !(i % 5); }))
+                ;
+
+            var yAxis = d3.axisLeft()
+                .scale(y)
+                .ticks(10);
+
+            var svg = d3.select("body").append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform",
+                    "translate(" + margin.left + "," + margin.top + ")");
+
+            svg.append("g")
+                .attr("class", "x axis")
+                .attr("transform", "translate(0," + height + ")")
+                .call(xAxis)
+                .selectAll("text")
+                .style("text-anchor", "end")
+                .attr("dx", "-.8em")
+                .attr("dy", "-.55em")
+                .attr("transform", "rotate(-45)")
+                ;
+
+            svg.append("g")
+                .attr("class", "y axis")
+                .call(yAxis)
+                .append("text")
+                .attr("transform", "rotate(-90)")
+                .attr("y", 6)
+                .attr("dy", ".71em")
+                .style("text-anchor", "end")
+                .text("Value");
+
+            svg.selectAll("bar")
+                .data(finalData)
+                .enter().append("rect")
+                .style("fill", "steelblue")
+                .attr("x", function (d) { return x(d.date); })
+                .attr("width", 3)
+                .attr("y", function (d) { return y(d.newCases); })
+                .attr("height", function (d) { return height - y(d.newCases); })
+                .on("mouseover", function (d) {
+                    div.transition()
+                        .duration(200)
+                        .style("opacity", .9);
+                    div.html(formatTime(d.date) + "<br/>" + d.newCases)
+                        .style("left", (d3.event.pageX) + "px")
+                        .style("top", (d3.event.pageY - 28) + "px");
+                })
+                .on("mouseout", function (d) {
+                    div.transition()
+                        .duration(500)
+                        .style("opacity", 0);
+                })
+                ;
+
+        }
+
+        function addNewCasesAndDeaths(data) {
+            for (var i = 0; i < data.length; i++) {
+                //console.log(data[i].cases - data[i - 1].cases);
+                if (i == 0) {
+                    data[i]["newCases"] = 0;
+                    data[i]["newDeaths"] = 0;
+                }
+                else {
+                    data[i]["newCases"] = data[i].cases - data[i - 1].cases;
+                    data[i]["newDeaths"] = data[i].deaths - data[i - 1].deaths;
+                }
+                //console.log(data[i]);
+            }
+
+            return data;
+        }
+    </script>
+</body>
+
+</html>
