@@ -45,25 +45,44 @@
             border-radius: 8px;
             pointer-events: none;
         }
+
+        .chartDiv {
+            text-align: left;
+        }
     </style>
 </head>
 
 <body onload='init()'>
 
+    <div id="texas" class="chartDiv"></div>
+    <div id="newyork" class="chartDiv"></div>
+    <div id="california" class="chartDiv"></div>
+    <div id="washington" class="chartDiv"></div>
     <script>
+
         async function init() {
             const data = await d3.csv('https://zhukov123.github.io/us-states.csv');
             //console.log(data);
 
-            var texas = data.filter(x => { return x.state == 'New York'; });
+            createChart(data, 'Texas', false);
+            createChart(data, 'New York');
+            createChart(data, 'California');
+            createChart(data, 'Washington');
+        }
+
+        function createChart(data, state, big)
+        {
+            var divName = state.replace(' ','').toLowerCase();
+
+            var stateData = data.filter(x => { return x.state == state; });
             //console.log(texas);
 
-            var finalData = addNewCasesAndDeaths(texas);
+            var finalData = addNewCasesAndDeaths(stateData);
             //console.log(temp);
 
-            var margin = { top: 20, right: 20, bottom: 70, left: 40 },
-                width = 1000 - margin.left - margin.right,
-                height = 400 - margin.top - margin.bottom;
+            var margin = big ? { top: 20, right: 20, bottom: 70, left: 40 } : { top: 2, right: 2, bottom: 7, left: 4 },
+                width = (big ? 1000 : 300) - margin.left - margin.right,
+                height = (big ? 400 : 150) - margin.top - margin.bottom;
 
             // Parse the date / time
             //var parseDate = d3.time.format("%Y-%m").parse;
@@ -80,7 +99,10 @@
 
             console.log(finalData);
 
-            var div = d3.select("body").append("div")
+            var div = d3.select("#" + divName)
+                .append('h2')
+                .html(state)
+                .append("div")
                 .attr("class", "tooltip")
                 .style("opacity", 0);
 
@@ -94,20 +116,22 @@
             var xAxis = d3.axisBottom()
                 .scale(x)
                 //.tickFormat(d3.timeFormat("%Y-%m-%d"))
-                //.ticks(10)
-                .tickValues(x.domain().filter(function (d, i) { return !(i % 5); }))
+                //.ticks(2)
+                .tickValues(x.domain().filter(function (d, i) { return !(i % (big ? 5 : 1000)); }))
                 ;
 
             var yAxis = d3.axisLeft()
                 .scale(y)
                 .ticks(10);
 
-            var svg = d3.select("body").append("svg")
+            var svg = d3.select("#" + divName).append("svg")
                 .attr("width", width + margin.left + margin.right)
                 .attr("height", height + margin.top + margin.bottom)
                 .append("g")
                 .attr("transform",
-                    "translate(" + margin.left + "," + margin.top + ")");
+                    "translate(" + margin.left + "," + margin.top + ")")
+                
+                ;
 
             svg.append("g")
                 .attr("class", "x axis")
@@ -128,7 +152,9 @@
                 .attr("y", 6)
                 .attr("dy", ".71em")
                 .style("text-anchor", "end")
-                .text("Value");
+                .text("Value")
+                
+                ;
 
             svg.selectAll("bar")
                 .data(finalData)
@@ -142,7 +168,7 @@
                     div.transition()
                         .duration(200)
                         .style("opacity", .9);
-                    div.html("<strong>Date:</strong> " + d.date + "<br/><strong>New Cases:</strong> " + d.newCases)
+                    div.html("<strong>" + state + "</strong><br /><strong>Date:</strong> " + d.date + "<br/><strong>New Cases:</strong> " + numberWithCommas(d.newCases))
                         .style("left", (d3.event.pageX) + "px")
                         .style("top", (d3.event.pageY - 28) + "px");
                 })
@@ -154,6 +180,7 @@
                 ;
 
         }
+
 
         function addNewCasesAndDeaths(data) {
             for (var i = 0; i < data.length; i++) {
@@ -171,6 +198,11 @@
 
             return data;
         }
+
+        function numberWithCommas(x) {
+            return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
     </script>
 </body>
 
