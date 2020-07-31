@@ -64,14 +64,16 @@
             const data = await d3.csv('https://zhukov123.github.io/us-states.csv');
             //console.log(data);
 
-            createChart(data, 'Texas', false);
-            createChart(data, 'New York');
-            createChart(data, 'California');
-            createChart(data, 'Washington');
+            createChart(data, 'Texas', false, "2020-07-01");
+             createChart(data, 'New York',  false, "2020-07-01");
+             createChart(data, 'California',  false, "2020-07-01");
+             createChart(data, 'Washington',  false, "2020-07-01");
         }
 
-        function createChart(data, state, big)
+        function createChart(data, state, big, openingDate)
         {
+            console.log("Date:", openingDate);
+
             var divName = state.replace(' ','').toLowerCase();
 
             var stateData = data.filter(x => { return x.state == state; });
@@ -159,7 +161,7 @@
             svg.selectAll("bar")
                 .data(finalData)
                 .enter().append("rect")
-                .style("fill", "steelblue")
+                .style("fill", function(d) { return d.date == openingDate ? "red": "steelBlue";})
                 .attr("x", function (d) { return x(d.date); })
                 .attr("width", 3)
                 .attr("y", function (d) { return y(d.newCases); })
