@@ -54,20 +54,31 @@
 
 <body onload='init()'>
 
-    <div id="texas" class="chartDiv"></div>
+    <!-- <div id="texas" class="chartDiv"></div>
     <div id="newyork" class="chartDiv"></div>
     <div id="california" class="chartDiv"></div>
-    <div id="washington" class="chartDiv"></div>
+    <div id="washington" class="chartDiv"></div> -->
+    <div id="smallCharts">
+
+    </div>
+    
     <script>
 
         async function init() {
             const data = await d3.csv('https://zhukov123.github.io/us-states.csv');
+            const openingDates = await d3.csv('https://zhukov123.github.io/openingDates.csv');
             //console.log(data);
 
-            createChart(data, 'Texas', false, "2020-07-01");
-             createChart(data, 'New York',  false, "2020-07-01");
-             createChart(data, 'California',  false, "2020-07-01");
-             createChart(data, 'Washington',  false, "2020-07-01");
+            openDates.forEach(element => {
+                d3.select('#smallCharts')
+                    .append('div')
+                    .attr('id', element.)
+            });
+
+            // createChart(data, 'Texas', false, "2020-07-01");
+            //  createChart(data, 'New York',  false, "2020-07-01");
+            //  createChart(data, 'California',  false, "2020-07-01");
+            //  createChart(data, 'Washington',  false, "2020-07-01");
         }
 
         function createChart(data, state, big, openingDate)
