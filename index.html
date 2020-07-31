@@ -48,6 +48,8 @@
 
         .chartDiv {
             text-align: left;
+            display: inline-block;
+            padding: 5px
         }
     </style>
 </head>
@@ -58,22 +60,23 @@
     <div id="newyork" class="chartDiv"></div>
     <div id="california" class="chartDiv"></div>
     <div id="washington" class="chartDiv"></div> -->
+    <div id="bigChart">
+    </div>
     <div id="smallCharts">
 
     </div>
-    
+
     <script>
 
-        async function init() {
-            const data = await d3.csv('https://zhukov123.github.io/us-states.csv');
-            const openingDates = await d3.csv('https://zhukov123.github.io/openingDates.csv');
-            //console.log(data);
+        var data = [];
+        var openingDates = [];
 
-            openDates.forEach(element => {
-                d3.select('#smallCharts')
-                    .append('div')
-                    .attr('id', element.)
-            });
+        async function init() {
+            data = await d3.csv('https://zhukov123.github.io/us-states.csv');
+            openingDates = await d3.csv('https://zhukov123.github.io/openingDates.csv');
+            console.log(data);
+
+            createSmallCharts();
 
             // createChart(data, 'Texas', false, "2020-07-01");
             //  createChart(data, 'New York',  false, "2020-07-01");
@@ -81,11 +84,37 @@
             //  createChart(data, 'Washington',  false, "2020-07-01");
         }
 
-        function createChart(data, state, big, openingDate)
-        {
-            console.log("Date:", openingDate);
+        function createSmallCharts() {
+            d3.select('#bigChart').html('');
 
-            var divName = state.replace(' ','').toLowerCase();
+            openingDates.forEach(element => {
+                if (element.State != '') {
+                    d3.select('#smallCharts')
+                        .append('div')
+                        .attr('id', element.State.replace(' ', '').toLowerCase())
+                        .attr('class', 'chartDiv')
+                        ;
+                    createChart(data, element.State, false, element.Date);
+                }
+            });
+        }
+
+        function createBigChart(state) {
+            d3.select('#smallCharts').html('');
+
+            d3.select('#bigChart')
+                .append('div')
+                .attr('id', state.replace(' ', '').toLowerCase())
+                .attr('class', 'chartDiv')
+                ;
+            createChart(data, state, true, openingDates.filter(x => { return x.State == state; })[0].Date);
+
+        }
+
+        function createChart(data, state, big, openingDate) {
+            console.log("Date:", openingDate, "State:", state);
+
+            var divName = state.replace(' ', '').toLowerCase();
 
             var stateData = data.filter(x => { return x.state == state; });
             //console.log(texas);
@@ -94,7 +123,7 @@
             //console.log(temp);
 
             var margin = big ? { top: 20, right: 20, bottom: 70, left: 40 } : { top: 2, right: 2, bottom: 7, left: 4 },
-                width = (big ? 1000 : 300) - margin.left - margin.right,
+                width = (big ? 1000 : 250) - margin.left - margin.right,
                 height = (big ? 400 : 150) - margin.top - margin.bottom;
 
             // Parse the date / time
@@ -110,11 +139,14 @@
             //     //console.log(d.date);
             // });
 
-            console.log(finalData);
-
+            // console.log(finalData);
+            
+            var navigationLinks = big ? "<h1>" + state + "</h1>" : "<a href='#' onclick=\"createBigChart('" + state + "')\">" + state + "</a>";
+            if (big) navigationLinks += "(<a href='#' onclick=createSmallCharts()>Back</a>)";
+            
             var div = d3.select("#" + divName)
                 .append('h2')
-                .html(state)
+                .html(navigationLinks)
                 .append("div")
                 .attr("class", "tooltip")
                 .style("opacity", 0);
@@ -143,7 +175,6 @@
                 .append("g")
                 .attr("transform",
                     "translate(" + margin.left + "," + margin.top + ")")
-                
                 ;
 
             svg.append("g")
@@ -166,13 +197,13 @@
                 .attr("dy", ".71em")
                 .style("text-anchor", "end")
                 .text("Value")
-                
+
                 ;
 
             svg.selectAll("bar")
                 .data(finalData)
                 .enter().append("rect")
-                .style("fill", function(d) { return d.date == openingDate ? "red": "steelBlue";})
+                .style("fill", function (d) { return d.date == openingDate ? "red" : "steelBlue"; })
                 .attr("x", function (d) { return x(d.date); })
                 .attr("width", 3)
                 .attr("y", function (d) { return y(d.newCases); })
