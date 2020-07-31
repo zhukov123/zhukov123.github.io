@@ -7,12 +7,12 @@
             font: 10px sans-serif;
         }
 
-        .axis path,
+        /* .axis path,
         .axis line {
             fill: none;
             stroke: #000;
             shape-rendering: crispEdges;
-        }
+        } */
 
 
         body {
@@ -20,8 +20,8 @@
         }
 
         path {
-            stroke: steelblue;
-            stroke-width: 2;
+            stroke: orange;
+            stroke-width: 3;
             fill: none;
         }
 
@@ -120,6 +120,12 @@
             //console.log(texas);
 
             var finalData = addNewCasesAndDeaths(stateData);
+
+            if (big)
+            {
+                finalData = addMovingAverage(finalData);
+                //console.log(finalData);
+            }
             //console.log(temp);
 
             var margin = big ? { top: 20, right: 20, bottom: 70, left: 40 } : { top: 2, right: 2, bottom: 7, left: 4 },
@@ -223,24 +229,64 @@
                 })
                 ;
 
+
+            if (big) {
+                //finalData = addMovingAverage(finalData);
+
+                var y2 = d3.scaleLinear()
+                    .domain([0, d3.max(finalData, function (d) { return +d.newCases; })])
+                    .range([height, 0]);
+
+                svg.append("path")
+                    .datum(finalData)
+                // .attr("fill", "none")
+                //     .attr("stroke", "orange")
+                //     .attr("stroke-width", 2.5)
+                    .attr("d", d3.line()
+                        .x(function (d) { return x(d.date) })
+                        .y(function (d) { return y(d.newCasesAvg) })
+                    )
+            }
+
         }
 
 
-        function addNewCasesAndDeaths(data) {
-            for (var i = 0; i < data.length; i++) {
+        function addNewCasesAndDeaths(stateData) {
+            for (var i = 0; i < stateData.length; i++) {
                 //console.log(data[i].cases - data[i - 1].cases);
                 if (i == 0) {
-                    data[i]["newCases"] = 0;
-                    data[i]["newDeaths"] = 0;
+                    stateData[i]["newCases"] = 0;
+                    stateData[i]["newDeaths"] = 0;
                 }
                 else {
-                    data[i]["newCases"] = data[i].cases - data[i - 1].cases;
-                    data[i]["newDeaths"] = data[i].deaths - data[i - 1].deaths;
+                    stateData[i]["newCases"] = stateData[i].cases - stateData[i - 1].cases;
+                    stateData[i]["newDeaths"] = stateData[i].deaths - stateData[i - 1].deaths;
                 }
                 //console.log(data[i]);
             }
 
-            return data;
+            return stateData;
+        }
+
+        function addMovingAverage(stateData)
+        {
+            for (var i = 0; i< stateData.length;i++)
+            {
+                var newCasesTotal = 0;
+                var newDeathsTotal = 0;
+                
+                for (var j = 0; j < 7 ; j++)
+                {
+                    if ((i - j) < 0) break;
+                    newCasesTotal += stateData[i - j].newCases;
+                    newDeathsTotal += stateData[i - j].newDeaths;
+                }
+
+                stateData[i].newCasesAvg = newCasesTotal / j;
+                stateData[i].newDeathsAvg = newDeathsTotal / j;
+            }
+
+            return stateData;
         }
 
         function numberWithCommas(x) {
