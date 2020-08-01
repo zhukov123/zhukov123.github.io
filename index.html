@@ -55,35 +55,32 @@
 
         .chartData {
             font-size: 14px;
-
         }
 
         .chartHeader {
             font-size: 18px;
+        }
 
+        .annotation {
+            z-index: 10000;
+            position: absolute;
+            background-color: white;
+            border: black;
+            border-width: thin;
+            border-radius: 3px;
+            border-style: solid;
+            padding: 5px;
         }
     </style>
 </head>
 
 <body onload='init()'>
 
-    <!-- <div id="texas" class="chartDiv"></div>
-    <div id="newyork" class="chartDiv"></div>
-    <div id="california" class="chartDiv"></div>
-    <div id="washington" class="chartDiv"></div> -->
     <h1>COVID Reopening Dates and New Cases by State in the US</h1>
-    <div id="header">
-
-    </div>
-    <div id="bigChart">
-    </div>
-    <div id="bigChartAnnotation">
-    </div>
-
-    <div id="smallCharts">
-
-    </div>
-
+    <div id="header"></div>
+    <div id="bigChart"></div>
+    <div id="bigChartAnnotation"></div>
+    <div id="smallCharts"></div>
     <script>
 
         var data = [];
@@ -93,17 +90,11 @@
             data = await d3.csv('https://zhukov123.github.io/us-states.csv');
             openingDates = await d3.csv('https://zhukov123.github.io/openingDates.csv');
             openingDates.sort(compare);
-            //console.log(data);
-
             createSmallCharts();
-
-            // createChart(data, 'Texas', false, "2020-07-01");
-            // createChart(data, 'New York',  false, "2020-07-01");
-            // createChart(data, 'California',  false, "2020-07-01");
-            // createChart(data, 'Washington',  false, "2020-07-01");
         }
 
         function createSmallCharts() {
+            d3.select('#smallCharts').html('');
             d3.select('#bigChart').html('');
             var header = ''
                 + "<p class='chartHeader'>The following charts show the progression of new covid cases by state. States are sorted"
@@ -118,24 +109,24 @@
                         .attr('id', element.State.replace(' ', '').toLowerCase())
                         .attr('class', 'chartDiv')
                         ;
-                    createChart(data, element.State, false, element.Date);
+                    createChart(data, element.State, false, element.Date, true);
                 }
             });
         }
 
-        function createBigChart(state) {
+        function createBigChart(state, showCases) {
             d3.select('#smallCharts').html('');
+            d3.select('#bigChart').html('');
             d3.select('#header').html('');
             d3.select('#bigChart')
                 .append('div')
                 .attr('id', state.replace(' ', '').toLowerCase())
                 .attr('class', 'chartDiv')
                 ;
-            createChart(data, state, true, openingDates.filter(x => { return x.State == state; })[0].Date);
-
+            createChart(data, state, true, openingDates.filter(x => { return x.State == state; })[0].Date, showCases);
         }
 
-        function createChart(data, state, big, openingDate) {
+        function createChart(data, state, big, openingDate, showCases) {
             //console.log("Date:", openingDate, "State:", state);
 
             var divName = state.replace(' ', '').toLowerCase();
@@ -155,32 +146,20 @@
                 width = (big ? 1000 : 250) - margin.left - margin.right,
                 height = (big ? 400 : 150) - margin.top - margin.bottom;
 
-            // Parse the date / time
-            //var parseDate = d3.time.format("%Y-%m").parse;
-            // var parseTime = d3.timeParse("%d-%b-%y");
+            var chartHeader = big 
+                ? "<h2>" + state + " " +  (showCases ? "Cases" : "Deaths") + " (<a href='#' onclick=createSmallCharts()>Return to overview</a>)</h2>" 
+                : "<h2><a href='#' onclick=\"createBigChart('" + state + "', true)\">" + state + "</a> (" + displayDate(openingDate) + ")</h2>";
 
-            // var parseTime = d3.timeParse("%Y-%m-%d");
-            // var formatTime = d3.timeFormat("%Y-%m-%d");  
-
-            // finalData.forEach(function (d) {
-            //     d.date = parseTime(d.date);
-            //     d.newCases = +d.newCases;
-            //     //console.log(d.date);
-            // });
-
-            // console.log(finalData);
-
-            var chartHeader = big ? "<h2>" + state + " (<a href='#' onclick=createSmallCharts()>Return</a>)</h2>" : "<h2><a href='#' onclick=\"createBigChart('" + state + "')\">" + state + "</a> (" + displayDate(openingDate) + ")</h2>";
             if (big) {
+                if (showCases)
+                    chartHeader += "<p class='chartHeader'><a href='#' onclick=\"createBigChart('" + state + "', false)\">Show Deaths</a></p>";
+                else
+                    chartHeader += "<p class='chartHeader'><a href='#' onclick=\"createBigChart('" + state + "', true)\">Show Cases</a></p>";
 
                 var annotation = '';
-
-                chartHeader += "<p class='chartHeader'></p>";
                 annotation += "<p class='chartData'><strong>Opening Date:</strong> " + displayDate(openingDate) + "</p>";
                 annotation += "<p class='chartData'><strong>Total Cases:</strong> " + numberWithCommas(finalData[finalData.length - 1].cases) + "</p>";
                 annotation += "<p class='chartData'><strong>Total Deaths:</strong> " + numberWithCommas(finalData[finalData.length - 1].deaths) + "</p>";
-
-
             }
 
             var div = d3.select("#" + divName)
@@ -195,7 +174,7 @@
             var y = d3.scaleLinear().range([height, 0]);
 
             x.domain(finalData.map(function (d) { return d.date; }));
-            y.domain([0, d3.max(finalData, function (d) { return d.newCases; })]);
+            y.domain([0, d3.max(finalData, function (d) { return showCases ? d.newCases : d.newDeaths; })]);
 
             var xAxis = d3.axisBottom()
                 .scale(x)
@@ -236,7 +215,6 @@
                     .attr("dy", ".71em")
                     .style("text-anchor", "end")
                     .text("Value")
-
                     ;
             }
 
@@ -246,15 +224,15 @@
                 .style("fill", function (d) { return d.date == openingDate ? "red" : "steelBlue"; })
                 .attr("x", function (d) { return x(d.date); })
                 .attr("width", function (d) { return d.date == openingDate ? 5 : 3; })
-                .attr("y", function (d) { return y(d.newCases); })
-                .attr("height", function (d) { return height - y(d.newCases); })
+                .attr("y", function (d) { return y(showCases ? d.newCases : d.newDeaths); })
+                .attr("height", function (d) { return height - y(showCases ? d.newCases : d.newDeaths); })
                 .on("mouseover", function (d) {
                     div.transition()
                         .duration(200)
                         .style("opacity", .9);
                     div.html("<strong>" + state + "</strong><br /><strong>Date:</strong> "
-                        + d.date + "<br/><strong>New Cases:</strong> " + numberWithCommas(d.newCases)
-                        + (big ? "<br/><strong>7 Day Avg:</strong> " + numberWithCommas(d.newCasesAvg.toFixed(0)) : ""))
+                        + d.date + "<br/><strong>New " + (showCases ? "Cases": "Deaths") + ":</strong> " + numberWithCommas(showCases ? d.newCases : d.newDeaths)
+                        + (big ? "<br/><strong>7 Day Avg:</strong> " + numberWithCommas(showCases ? d.newCasesAvg.toFixed(0) : d.newDeathsAvg.toFixed(0)) : ""))
                         .style("left", (d3.event.pageX) + "px")
                         .style("top", (d3.event.pageY - 28) + "px");
                 })
@@ -264,29 +242,25 @@
                         .style("opacity", 0);
                 })
                 ;
-            //console.log("X Value:",  x(openingDate));
+
 
             if (big) {
-                //finalData = addMovingAverage(finalData);
-
-                // var y2 = d3.scaleLinear()
-                //     .domain([0, d3.max(finalData, function (d) { return +d.newCases; })])
-                //     .range([height, 0]);
-
+                console.log("X Value:", x(openingDate));
                 svg.append("path")
                     .datum(finalData)
                     .attr("d", d3.line()
                         .x(function (d) { return x(d.date) })
-                        .y(function (d) { return y(d.newCasesAvg) })
+                        .y(function (d) { return y(showCases ? d.newCasesAvg : d.newDeathsAvg) })
                     );
 
                 d3.select('#bigChart')
                     .append('div')
                     .html(annotation)
-                    .style("left", "75px")
+                    .attr('class','annotation')
+                    .style("left", (x(openingDate) - 30) + "px")
                     .style("top", "180px")
-                    .style("z-index", "10000")
-                    .style("position", "absolute")
+                    //.style("z-index", "10000")
+                    //.style("position", "absolute")
                     ;
 
                 // svg.append("path")
