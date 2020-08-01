@@ -7,14 +7,6 @@
             font: 10px sans-serif;
         }
 
-        /* .axis path,
-        .axis line {
-            fill: none;
-            stroke: #000;
-            shape-rendering: crispEdges;
-        } */
-
-
         body {
             font-size: 14px;
             font-family: 'Calibri';
@@ -76,11 +68,12 @@
 
 <body onload='init()'>
 
-    <h1>COVID Reopening Dates and New Cases by State in the US</h1>
+    <h1>COVID Reopening Dates and New Cases/Deaths by State</h1>
     <div id="header"></div>
     <div id="bigChart"></div>
     <div id="bigChartAnnotation"></div>
     <div id="smallCharts"></div>
+    <div id="bigChartFooter"></div>
     <script>
 
         var data = [];
@@ -95,10 +88,16 @@
 
         function createSmallCharts() {
             d3.select('#smallCharts').html('');
+            d3.select('#bigChartFooter').html('');
             d3.select('#bigChart').html('');
             var header = ''
-                + "<p class='chartHeader'>The following charts show the progression of new covid cases by state. States are sorted"
+                + "<p class='chartHeader'>The following charts show the progression of new covid cases by state. States are sorted "
                 + "by their initial reopening dates after lockdowns, with the earliest reopening dates first.</p>"
+                
+
+                + "<p>Sources: <a href='https://www.nytimes.com/interactive/2020/us/states-reopen-map-coronavirus.html'>NY Times Reopening Dates</a>, "
+                + "<a href='https://github.com/nytimes/covid-19-data'>NY Times Covid Data</a></p>"
+
                 + "<p class='chartHeader'>Please click on the state name to drill down into the state.</p>";
             d3.select('#header').html(header);
 
@@ -116,6 +115,7 @@
 
         function createBigChart(state, showCases) {
             d3.select('#smallCharts').html('');
+            d3.select('#bigChartFooter').html('');
             d3.select('#bigChart').html('');
             d3.select('#header').html('');
             d3.select('#bigChart')
@@ -123,24 +123,26 @@
                 .attr('id', state.replace(' ', '').toLowerCase())
                 .attr('class', 'chartDiv')
                 ;
+
+            var footer = '';
+            openingDates.forEach(element => {
+                if (element.State != '' && element.State != state) {
+                    footer += " <a href='#' onclick=\"createBigChart('" + element.State + "', true)\">" + element.State + "</a> | ";
+                }
+            });
+            d3.select('#bigChartFooter').html(footer);
+
             createChart(data, state, true, openingDates.filter(x => { return x.State == state; })[0].Date, showCases);
         }
 
         function createChart(data, state, big, openingDate, showCases) {
-            //console.log("Date:", openingDate, "State:", state);
-
             var divName = state.replace(' ', '').toLowerCase();
-
             var stateData = data.filter(x => { return x.state == state; });
-            //console.log(texas);
-
             var finalData = addNewCasesAndDeaths(stateData);
 
             if (big) {
                 finalData = addMovingAverage(finalData);
-                //console.log(finalData);
             }
-            //console.log(temp);
 
             var margin = big ? { top: 20, right: 20, bottom: 70, left: 40 } : { top: 2, right: 2, bottom: 7, left: 4 },
                 width = (big ? 1000 : 250) - margin.left - margin.right,
@@ -178,8 +180,6 @@
 
             var xAxis = d3.axisBottom()
                 .scale(x)
-                //.tickFormat(d3.timeFormat("%Y-%m-%d"))
-                //.ticks(2)
                 .tickValues(x.domain().filter(function (d, i) { return !(i % (big ? 5 : 1000)); }))
                 ;
 
@@ -259,16 +259,7 @@
                     .attr('class','annotation')
                     .style("left", (x(openingDate) - 30) + "px")
                     .style("top", "180px")
-                    //.style("z-index", "10000")
-                    //.style("position", "absolute")
                     ;
-
-                // svg.append("path")
-                // .datum(finalData)
-                // .attr("d", d3.line()
-                //     .x(function (d) { return x(d.date) })
-                //     .y(function (d) { return y(d.newDeathsAvg) })
-                // );
             }
 
         }
@@ -276,7 +267,6 @@
 
         function addNewCasesAndDeaths(stateData) {
             for (var i = 0; i < stateData.length; i++) {
-                //console.log(data[i].cases - data[i - 1].cases);
                 if (i == 0) {
                     stateData[i]["newCases"] = 0;
                     stateData[i]["newDeaths"] = 0;
@@ -288,7 +278,6 @@
                     stateData[i]["newCases"] = newCases > 0 ? newCases : 0;
                     stateData[i]["newDeaths"] = newDeaths > 0 ? newDeaths : 0;
                 }
-                //console.log(data[i]);
             }
 
             return stateData;
