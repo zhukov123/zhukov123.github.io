@@ -37,7 +37,7 @@
             position: absolute;
             text-align: left;
             width: 130px;
-            height: 40px;
+            height: 55px;
             padding: 2px;
             font: 12px sans-serif;
             background: white;
@@ -51,6 +51,11 @@
             display: inline-block;
             padding: 5px
         }
+
+        .chartData {
+            font-size: 14px;
+
+        }
     </style>
 </head>
 
@@ -60,6 +65,12 @@
     <div id="newyork" class="chartDiv"></div>
     <div id="california" class="chartDiv"></div>
     <div id="washington" class="chartDiv"></div> -->
+
+    <h1>COVID Opening Dates by State</h1>
+
+    <p class='chartData'>The following charts show the progression of new covid cases by state. States are sorted
+        by their initial reopening dates after lockdowns, with the earliest reopening dates first.</p>
+
     <div id="bigChart">
     </div>
     <div id="smallCharts">
@@ -74,6 +85,7 @@
         async function init() {
             data = await d3.csv('https://zhukov123.github.io/us-states.csv');
             openingDates = await d3.csv('https://zhukov123.github.io/openingDates.csv');
+            openingDates.sort(compare);
             console.log(data);
 
             createSmallCharts();
@@ -121,8 +133,7 @@
 
             var finalData = addNewCasesAndDeaths(stateData);
 
-            if (big)
-            {
+            if (big) {
                 finalData = addMovingAverage(finalData);
                 //console.log(finalData);
             }
@@ -146,13 +157,20 @@
             // });
 
             // console.log(finalData);
-            
-            var navigationLinks = big ? "<h1>" + state + "</h1>" : "<a href='#' onclick=\"createBigChart('" + state + "')\">" + state + "</a>";
-            if (big) navigationLinks += "(<a href='#' onclick=createSmallCharts()>Back</a>)";
-            
+
+            var chartHeader = big ? "<h1>" + state + "</h1>" : "<h2><a href='#' onclick=\"createBigChart('" + state + "')\">" + state + "</a> (" + displayDate(openingDate) + ")</h2>";
+            if (big) {
+                chartHeader += "(<a href='#' onclick=createSmallCharts()>Back</a>)";
+                chartHeader += "<p class='chartData'><strong>Opening Date:</strong> " + displayDate(openingDate) + "</p>";
+                chartHeader += "<p class='chartData'><strong>Total Cases:</strong> " + numberWithCommas(finalData[finalData.length - 1].cases) + "</p>";
+                chartHeader += "<p class='chartData'><strong>Total Deaths:</strong> " + numberWithCommas(finalData[finalData.length - 1].deaths) + "</p>";
+
+
+            }
+
             var div = d3.select("#" + divName)
-                .append('h2')
-                .html(navigationLinks)
+                .append('div')
+                .html(chartHeader)
                 .append("div")
                 .attr("class", "tooltip")
                 .style("opacity", 0);
@@ -218,7 +236,9 @@
                     div.transition()
                         .duration(200)
                         .style("opacity", .9);
-                    div.html("<strong>" + state + "</strong><br /><strong>Date:</strong> " + d.date + "<br/><strong>New Cases:</strong> " + numberWithCommas(d.newCases))
+                    div.html("<strong>" + state + "</strong><br /><strong>Date:</strong> "
+                        + d.date + "<br/><strong>New Cases:</strong> " + numberWithCommas(d.newCases)
+                        + (big ? "<br/><strong>7 Day Avg:</strong> " + numberWithCommas(d.newCasesAvg.toFixed(0)) : ""))
                         .style("left", (d3.event.pageX) + "px")
                         .style("top", (d3.event.pageY - 28) + "px");
                 })
@@ -233,19 +253,23 @@
             if (big) {
                 //finalData = addMovingAverage(finalData);
 
-                var y2 = d3.scaleLinear()
-                    .domain([0, d3.max(finalData, function (d) { return +d.newCases; })])
-                    .range([height, 0]);
+                // var y2 = d3.scaleLinear()
+                //     .domain([0, d3.max(finalData, function (d) { return +d.newCases; })])
+                //     .range([height, 0]);
 
                 svg.append("path")
                     .datum(finalData)
-                // .attr("fill", "none")
-                //     .attr("stroke", "orange")
-                //     .attr("stroke-width", 2.5)
                     .attr("d", d3.line()
                         .x(function (d) { return x(d.date) })
                         .y(function (d) { return y(d.newCasesAvg) })
-                    )
+                    );
+
+                // svg.append("path")
+                // .datum(finalData)
+                // .attr("d", d3.line()
+                //     .x(function (d) { return x(d.date) })
+                //     .y(function (d) { return y(d.newDeathsAvg) })
+                // );
             }
 
         }
@@ -268,15 +292,12 @@
             return stateData;
         }
 
-        function addMovingAverage(stateData)
-        {
-            for (var i = 0; i< stateData.length;i++)
-            {
+        function addMovingAverage(stateData) {
+            for (var i = 0; i < stateData.length; i++) {
                 var newCasesTotal = 0;
                 var newDeathsTotal = 0;
-                
-                for (var j = 0; j < 7 ; j++)
-                {
+
+                for (var j = 0; j < 7; j++) {
                     if ((i - j) < 0) break;
                     newCasesTotal += stateData[i - j].newCases;
                     newDeathsTotal += stateData[i - j].newDeaths;
@@ -291,6 +312,23 @@
 
         function numberWithCommas(x) {
             return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
+        function compare(a, b) {
+            if (a.Date < b.Date) {
+                return -1;
+            }
+            if (a.Date > b.Date) {
+                return 1;
+            }
+            return 0;
+        }
+
+        function displayDate(dateStr)
+        {
+            var dateParts = dateStr.split('-');
+            console
+            return dateParts[1] + "/" + dateParts[2] + "/" + dateParts[0];
         }
 
     </script>
