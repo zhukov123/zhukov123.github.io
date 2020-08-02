@@ -96,7 +96,8 @@
             d3.select('#bigChart').html('');
             var header = ''
                 + "<p class='chartHeader'>The following charts show the progression of new covid cases by state. States are sorted "
-                + "by their initial reopening dates after lockdowns, with the earliest reopening dates first.</p>"
+                + "by their initial reopening dates after lockdowns, with the earliest reopening dates first. Each chart header contains"
+                + " the <strong>state name</strong>, <strong>reopening date</strong>, and <strong>percent increase</strong> in cases since the reopening date.</p>"
                 
 
                 + "<p>Sources: <a href='https://www.nytimes.com/interactive/2020/us/states-reopen-map-coronavirus.html'>NY Times Reopening Dates</a>, "
@@ -162,7 +163,9 @@
 
             var chartHeader = big 
                 ? "<h2>" + state + " " +  (showCases ? "Cases" : "Deaths") + " (<a href='#' onclick=createSmallCharts()>Return to overview</a>)</h2>" 
-                : "<h2><a href='#' onclick=\"createBigChart('" + state + "', true)\">" + state + "</a> (" + displayDate(openingDate) + ", " + pecentageIncrease.toFixed(0) +"%)</h2>";
+                : "<h2><a href='#' onclick=\"createBigChart('" + state + "', true)\">" + state + "</a> (" 
+                    + displayDate(openingDate) + ", " 
+                    + numberWithCommas(pecentageIncrease.toFixed(0)) +"%)</h2>";
 
             if (big) {
                 if (showCases)
@@ -171,9 +174,11 @@
                     chartHeader += "<p class='chartHeader'><a href='#' onclick=\"createBigChart('" + state + "', true)\">Show Cases</a></p>";
 
                 var annotation = '';
-                annotation += "<p class='chartData'><strong>Opening Date:</strong> " + displayDate(openingDate) + "</p>";
-                annotation += "<p class='chartData'><strong>Total Cases:</strong> " + numberWithCommas(finalData[finalData.length - 1].cases) + "</p>";
-                annotation += "<p class='chartData'><strong>Total Deaths:</strong> " + numberWithCommas(finalData[finalData.length - 1].deaths) + "</p>";
+                annotation += "<p class='chartData'><strong>Opening Date:</strong> " + displayDate(openingDate) + "<br />"
+                    + "<strong>Total Cases:</strong> " + numberWithCommas(finalData[finalData.length - 1].cases) + "<br />"
+                    + "<strong>Total Deaths:</strong> " + numberWithCommas(finalData[finalData.length - 1].deaths)  + "<br />"
+                    + "<strong>% Increase (cases):</strong> " + numberWithCommas(pecentageIncrease.toFixed(0)) +"%"
+                    + "</p>";
             }
 
             var div = d3.select("#" + divName)
