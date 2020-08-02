@@ -139,10 +139,10 @@
             var divName = state.replace(' ', '').toLowerCase();
             var stateData = data.filter(x => { return x.state == state; });
             var finalData = addNewCasesAndDeaths(stateData);
-
-            if (big) {
-                finalData = addMovingAverage(finalData);
-            }
+            finalData = addMovingAverage(finalData);
+            
+            var decreasingCases = finalData[finalData.length - 1].newCasesAvg < finalData[finalData.length - 31].newCasesAvg;
+            var decreasingDeaths = finalData[finalData.length - 1].newDeathsAvg < finalData[finalData.length - 31].newDeathsAvg;
 
             var margin = big ? { top: 20, right: 20, bottom: 70, left: 40 } : { top: 2, right: 2, bottom: 7, left: 4 },
                 width = (big ? 1000 : 250) - margin.left - margin.right,
@@ -218,10 +218,20 @@
                     ;
             }
 
+            var barColor = function (d) { 
+                var today = new Date(finalData[finalData.length-1].date);
+                var twoWeeksAgo = today.setDate(today.getDate() - 30);
+
+                return d.date == openingDate ? "orange" : 
+                    new Date(d.date) > twoWeeksAgo 
+                        ? (showCases ? decreasingCases : decreasingDeaths) ? "green" : "red"
+                        : "steelBlue"; 
+            }
+
             svg.selectAll("bar")
                 .data(finalData)
                 .enter().append("rect")
-                .style("fill", function (d) { return d.date == openingDate ? "red" : "steelBlue"; })
+                .style("fill", barColor)
                 .attr("x", function (d) { return x(d.date); })
                 .attr("width", function (d) { return d.date == openingDate ? 5 : 3; })
                 .attr("y", function (d) { return y(showCases ? d.newCases : d.newDeaths); })
