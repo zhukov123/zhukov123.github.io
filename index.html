@@ -63,6 +63,10 @@
             border-style: solid;
             padding: 5px;
         }
+
+        h2 {
+            font-size: 16px;
+        }
     </style>
 </head>
 
@@ -126,8 +130,8 @@
 
             var footer = '';
             openingDates.forEach(element => {
-                if (element.State != '' && element.State != state) {
-                    footer += " <a href='#' onclick=\"createBigChart('" + element.State + "', true)\">" + element.State + "</a> | ";
+                if (element.State != '' && element.State != 'District of Columbia') {
+                    footer += " <a href='#' onclick=\"createBigChart('" + element.State + "', true)\">" + element.State + " (" + element.Date.replace('2020-0','').replace('-','/') +")</a> | ";
                 }
             });
             d3.select('#bigChartFooter').html(footer);
@@ -140,9 +144,17 @@
             var stateData = data.filter(x => { return x.state == state; });
             var finalData = addNewCasesAndDeaths(stateData);
             finalData = addMovingAverage(finalData);
-            
-            var decreasingCases = finalData[finalData.length - 1].newCasesAvg < finalData[finalData.length - 31].newCasesAvg;
-            var decreasingDeaths = finalData[finalData.length - 1].newDeathsAvg < finalData[finalData.length - 31].newDeathsAvg;
+            var timeLag = (new Date(finalData[finalData.length - 1].date) - new Date(finalData.filter(x => { return x.date == openingDate; })[0].date)) / (1000 * 3600 * 24);
+            console.log(timeLag);
+            //var timeLag = 14;
+            var percentageIncrease = 1.1;
+            var decreasingCases = finalData[finalData.length - 1].newCasesAvg < finalData[finalData.length - timeLag + 1].newCasesAvg * percentageIncrease;
+            var decreasingDeaths = finalData[finalData.length - 1].newDeathsAvg < finalData[finalData.length - timeLag + 1].newDeathsAvg * percentageIncrease;
+
+            var pecentageIncrease = (finalData[finalData.length - 1].newCasesAvg - finalData.filter(x => { return x.date == openingDate; })[0].newCasesAvg) / finalData.filter(x => { return x.date == openingDate; })[0].newCasesAvg * 100;
+            //var newCasesToday = finalData[finalData.length - 1].newCasesAvg;
+            //var newCasesMax = d3.max(finalData, function (d) { return d.newCasesAvg; })
+            //var newCasesOpening = d3.max(finalData, function (d) { return d.newCasesAvg; })
 
             var margin = big ? { top: 20, right: 20, bottom: 70, left: 40 } : { top: 2, right: 2, bottom: 7, left: 4 },
                 width = (big ? 1000 : 250) - margin.left - margin.right,
@@ -150,7 +162,7 @@
 
             var chartHeader = big 
                 ? "<h2>" + state + " " +  (showCases ? "Cases" : "Deaths") + " (<a href='#' onclick=createSmallCharts()>Return to overview</a>)</h2>" 
-                : "<h2><a href='#' onclick=\"createBigChart('" + state + "', true)\">" + state + "</a> (" + displayDate(openingDate) + ")</h2>";
+                : "<h2><a href='#' onclick=\"createBigChart('" + state + "', true)\">" + state + "</a> (" + displayDate(openingDate) + ", " + pecentageIncrease.toFixed(0) +"%)</h2>";
 
             if (big) {
                 if (showCases)
@@ -220,7 +232,7 @@
 
             var barColor = function (d) { 
                 var today = new Date(finalData[finalData.length-1].date);
-                var twoWeeksAgo = today.setDate(today.getDate() - 30);
+                var twoWeeksAgo = today.setDate(today.getDate() - timeLag);
 
                 return d.date == openingDate ? "orange" : 
                     new Date(d.date) > twoWeeksAgo 
